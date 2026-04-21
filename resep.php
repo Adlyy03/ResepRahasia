@@ -1,12 +1,19 @@
 <?php
 include 'inc/db.php';
 
-// 1. Ambil dan amankan ID dari URL
+// 1. Ambil dan validasi ID dari URL
 $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 
-// 2. Siapkan query dengan casting id
-$query = "SELECT * FROM resep WHERE id = $id";
-$result = mysqli_query($conn, $query);
+if ($id <= 0) {
+  echo "<p>ID resep tidak valid.</p>";
+  exit;
+}
+
+// 2. Siapkan query dengan prepared statement
+$stmt = $conn->prepare("SELECT * FROM resep WHERE id = ?");
+$stmt->bind_param("i", $id);
+$stmt->execute();
+$result = $stmt->get_result();
 
 // 3. Cek apakah query berhasil dan data ada
 if (!$result || mysqli_num_rows($result) === 0) {

@@ -3,16 +3,20 @@
 session_start();
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $role = $_POST['role'];
+  $role = $_POST['role'] ?? '';
+  $inputUsername = trim($_POST['username'] ?? '');
+  $inputPassword = $_POST['password'] ?? '';
 
     if ($role === 'admin') {
         // Admin credentials tetap hardcoded
         $username = 'admin';
         $password = 'admin123';
 
-        if ($_POST['username'] === $username && $_POST['password'] === $password) {
+    if ($inputUsername === $username && $inputPassword === $password) {
+      session_regenerate_id(true);
             $_SESSION['loggedin'] = true;
             $_SESSION['role'] = 'admin';
+      $_SESSION['username'] = $inputUsername;
             header("Location: adminn.php");
             exit;
         } else {
@@ -20,10 +24,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     } else {
         // Untuk role user, terima semua username/password non-kosong
-        if (!empty($_POST['username']) && !empty($_POST['password'])) {
+    if ($inputUsername !== '' && $inputPassword !== '') {
+      session_regenerate_id(true);
             $_SESSION['loggedin'] = true;
             $_SESSION['role'] = 'user';
-            $_SESSION['username'] = $_POST['username'];
+      $_SESSION['username'] = $inputUsername;
             header("Location: index.php");
             exit;
         } else {
@@ -184,7 +189,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       <h2>Selamat Datang di DapurKita</h2>
 
       <?php if (isset($error)): ?>
-        <div class="error"><?php echo $error; ?></div>
+        <div class="error"><?php echo htmlspecialchars($error); ?></div>
       <?php endif; ?>
 
       <div class="tabs">

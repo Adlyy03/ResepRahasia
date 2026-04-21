@@ -61,7 +61,6 @@ if (isset($_POST['simpan_id'])) {
         if ($result && mysqli_num_rows($result) > 0) {
           while ($row = mysqli_fetch_assoc($result)) {
             $isFavorit = isset($_SESSION['favorit']) && in_array($row['id'], $_SESSION['favorit']);
-            $isFavorit = in_array($row['id'], $_SESSION['favorit']);
 
 echo "
   <div class='resep-card' 
@@ -76,7 +75,7 @@ echo "
 
     <form method='post'>
       <input type='hidden' name='simpan_id' value='" . $row['id'] . "' />
-      <button type='submit' class='back-link' style='margin-top: 0.5rem; background-color: " . ($isFavorit ? "#6c757d" : "#28a745") . "; color: white;'>
+      <button type='submit' class='back-link' style='margin-top: 0.5rem; background-color: " . ($isFavorit ? "#6c757d" : "#28a745") . "; color: white;' " . ($isFavorit ? "disabled" : "") . ">
         " . ($isFavorit ? "✔ Disimpan" : " Simpan Resep") . "
       </button>
     </form>

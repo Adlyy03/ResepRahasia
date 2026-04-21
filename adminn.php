@@ -10,25 +10,63 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['role'] !== 'admin') {
 
 // Proses tambah resep
 if (isset($_POST['tambah'])) {
-    $nama_resep = $_POST['nama_resep'];
-    $bahan = $_POST['bahan'];
-    $langkah = $_POST['langkah'];
-    $waktu_persiapkan = $_POST['waktu_persiapkan'];
-    $kategori = $_POST['kategori'];
+    $nama_resep = trim($_POST['nama_resep'] ?? '');
+    $bahan = trim($_POST['bahan'] ?? '');
+    $langkah = trim($_POST['langkah'] ?? '');
+    $waktu_persiapkan = trim($_POST['waktu_persiapkan'] ?? '');
+    $kategori = trim($_POST['kategori'] ?? '');
 
-    $sql = "INSERT INTO resep (nama_resep, bahan, langkah, waktu_persiapkan, kategori) 
-            VALUES ('$nama_resep', '$bahan', '$langkah', '$waktu_persiapkan', '$kategori')";
-    $conn->query($sql);
+    if ($nama_resep !== '' && $bahan !== '' && $langkah !== '' && $waktu_persiapkan !== '' && $kategori !== '') {
+        $stmt = $conn->prepare("INSERT INTO resep (nama_resep, bahan, langkah, waktu_persiapkan, kategori) VALUES (?, ?, ?, ?, ?)");
+        $stmt->bind_param("sssss", $nama_resep, $bahan, $langkah, $waktu_persiapkan, $kategori);
+        $stmt->execute();
+    }
+    header("Location: adminn.php");
+    exit;
+}
+
+// Proses update resep
+if (isset($_POST['update'])) {
+    $id = (int)($_POST['id'] ?? 0);
+    $nama_resep = trim($_POST['nama_resep'] ?? '');
+    $bahan = trim($_POST['bahan'] ?? '');
+    $langkah = trim($_POST['langkah'] ?? '');
+    $waktu_persiapkan = trim($_POST['waktu_persiapkan'] ?? '');
+    $kategori = trim($_POST['kategori'] ?? '');
+
+    if ($id > 0 && $nama_resep !== '' && $bahan !== '' && $langkah !== '' && $waktu_persiapkan !== '' && $kategori !== '') {
+        $stmt = $conn->prepare("UPDATE resep SET nama_resep = ?, bahan = ?, langkah = ?, waktu_persiapkan = ?, kategori = ? WHERE id = ?");
+        $stmt->bind_param("sssssi", $nama_resep, $bahan, $langkah, $waktu_persiapkan, $kategori, $id);
+        $stmt->execute();
+    }
     header("Location: adminn.php");
     exit;
 }
 
 // Proses hapus resep
 if (isset($_GET['hapus'])) {
-    $id = $_GET['hapus'];
-    $conn->query("DELETE FROM resep WHERE id = $id");
+    $id = (int)$_GET['hapus'];
+    if ($id > 0) {
+        $stmt = $conn->prepare("DELETE FROM resep WHERE id = ?");
+        $stmt->bind_param("i", $id);
+        $stmt->execute();
+    }
     header("Location: adminn.php");
     exit;
+}
+
+$editData = null;
+if (isset($_GET['edit'])) {
+    $editId = (int)$_GET['edit'];
+    if ($editId > 0) {
+        $stmt = $conn->prepare("SELECT * FROM resep WHERE id = ?");
+        $stmt->bind_param("i", $editId);
+        $stmt->execute();
+        $editResult = $stmt->get_result();
+        if ($editResult && $editResult->num_rows > 0) {
+            $editData = $editResult->fetch_assoc();
+        }
+    }
 }
 
 // Ambil semua resep
@@ -154,12 +192,12 @@ $result = $conn->query($sql);
             </tr>
             <?php while ($row = $result->fetch_assoc()): ?>
             <tr>
-                <td><?php echo $row['id']; ?></td>
-                <td><?php echo $row['nama_resep']; ?></td>
-                <td><?php echo $row['kategori']; ?></td>
+                <td><?php echo (int)$row['id']; ?></td>
+                <td><?php echo htmlspecialchars($row['nama_resep']); ?></td>
+                <td><?php echo htmlspecialchars($row['kategori']); ?></td>
                 <td class="actions">
-                    <a href="edit.php?id=<?php echo $row['id']; ?>">Edit</a>
-                    <a href="adminn.php?hapus=<?php echo $row['id']; ?>" onclick="return confirm('Hapus resep ini?')">Hapus</a>
+                    <a href="adminn.php?edit=<?php echo (int)$row['id']; ?>">Edit</a>
+                    <a href="adminn.php?hapus=<?php echo (int)$row['id']; ?>" onclick="return confirm('Hapus resep ini?')">Hapus</a>
                 </td>
             </tr>
             <?php endwhile; ?>
@@ -168,14 +206,21 @@ $result = $conn->query($sql);
 
     <!-- Card Form Tambah Resep -->
     <div class="card">
-            <h2>Tambah Resep Baru</h2>
+            <h2><?php echo $editData ? 'Edit Resep' : 'Tambah Resep Baru'; ?></h2>
             <form method="POST" action="adminn.php">
-                <input type="text" name="nama_resep" placeholder="Nama Resep" required>
-                <textarea name="bahan" placeholder="Bahan-bahan" required></textarea>
-                <textarea name="langkah" placeholder="Langkah-langkah" required></textarea>
-                <input type="text" name="waktu_persiapkan" placeholder="Waktu Persiapan (menit)" required>
-                <input type="text" name="kategori" placeholder="Kategori" required>
-                <button type="submit" name="tambah">Tambah Resep</button>
+                <?php if ($editData): ?>
+                    <input type="hidden" name="id" value="<?php echo (int)$editData['id']; ?>">
+                <?php endif; ?>
+                <input type="text" name="nama_resep" placeholder="Nama Resep" required value="<?php echo htmlspecialchars($editData['nama_resep'] ?? ''); ?>">
+                <textarea name="bahan" placeholder="Bahan-bahan" required><?php echo htmlspecialchars($editData['bahan'] ?? ''); ?></textarea>
+                <textarea name="langkah" placeholder="Langkah-langkah" required><?php echo htmlspecialchars($editData['langkah'] ?? ''); ?></textarea>
+                <input type="text" name="waktu_persiapkan" placeholder="Waktu Persiapan (menit)" required value="<?php echo htmlspecialchars($editData['waktu_persiapkan'] ?? ''); ?>">
+                <input type="text" name="kategori" placeholder="Kategori" required value="<?php echo htmlspecialchars($editData['kategori'] ?? ''); ?>">
+                <?php if ($editData): ?>
+                    <button type="submit" name="update">Simpan Perubahan</button>
+                <?php else: ?>
+                    <button type="submit" name="tambah">Tambah Resep</button>
+                <?php endif; ?>
             </form>
         </div>
 
